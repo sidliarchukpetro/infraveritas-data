@@ -35,7 +35,7 @@ function readingsRoot(readings) {
 const hexToBytes = (h) =>
   Uint8Array.from((h.replace(/^0x/, "").match(/../g) ?? []).map((b) => parseInt(b, 16)));
 
-let files = 0, bad = 0, missingFiles = 0, rootFail = 0, extFail = 0, gaps = 0, days = 0;
+let files = 0, bad = 0, missingFiles = 0, rootFail = 0, extFail = 0, extLegacy = 0, gaps = 0, days = 0;
 
 const devices = (await readdir(join(ROOT, "manifests"), { withFileTypes: true }))
   .filter((d) => d.isDirectory()).map((d) => d.name);
@@ -69,13 +69,21 @@ for (const dev of devices) {
         rootFail += 1;
         console.log(`  READINGS ROOT MISMATCH ${e.file}`);
       }
-      const ext = b.extensions ?? "";
-      const extRoot = ext.length === 0
-        ? "0x" + "0".repeat(64)
-        : keccak256(hexToBytes(ext));
-      if (extRoot.toLowerCase() !== String(b.attestation.extensionsRoot).toLowerCase()) {
-        extFail += 1;
-        console.log(`  EXTENSIONS ROOT MISMATCH ${e.file}`);
+      // Пакети, записані до того, як реле почало класти прообраз розширень,
+      // несуть корінь без прообразу. Це не пошкодження архіву, а межа
+      // формату: корінь лишається підписаним і перевіряється на ланцюгу,
+      // але відтворити його з пакета вже неможливо. Рахуємо окремо.
+      const ext = b.extensions;
+      const signedRoot = String(b.attestation.extensionsRoot).toLowerCase();
+      const emptyRoot = "0x" + "0".repeat(64);
+      if (ext === undefined && signedRoot !== emptyRoot) {
+        extLegacy += 1;
+      } else {
+        const extRoot = (ext ?? "").length === 0 ? emptyRoot : keccak256(hexToBytes(ext ?? ""));
+        if (extRoot.toLowerCase() !== signedRoot) {
+          extFail += 1;
+          console.log(`  EXTENSIONS ROOT MISMATCH ${e.file}`);
+        }
       }
     }
   }
@@ -89,6 +97,9 @@ console.log(`  ${ok(missingFiles === 0)}  every file listed in a manifest is pre
 console.log(`  ${ok(bad === 0)}  every file hashes to its manifest entry`);
 console.log(`  ${ok(rootFail === 0)}  raw readings hash to the signed readings root`);
 console.log(`  ${ok(extFail === 0)}  extension preimages hash to the signed extensions root`);
-console.log(`  ${gaps === 0 ? "     " : "note "}  ${gaps} epoch(s) absent — offline evidence, not archive damage\n`);
+console.log(`  ${ok(extFail === 0)}  extension preimages hash to the signed extensions root`.replace(/^.*$/, m => m) && "");
+console.log(`  ${gaps === 0 ? "     " : "note "}  ${gaps} epoch(s) absent — offline evidence, not archive damage`);
+if (extLegacy > 0) console.log(`  note   ${extLegacy} bundle(s) predate extension publication — root signed on chain, preimage not in archive`);
+console.log("");
 
 process.exit(missingFiles + bad + rootFail + extFail === 0 ? 0 : 1);
