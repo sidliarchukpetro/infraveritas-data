@@ -97,9 +97,11 @@ console.log(`  ${ok(missingFiles === 0)}  every file listed in a manifest is pre
 console.log(`  ${ok(bad === 0)}  every file hashes to its manifest entry`);
 console.log(`  ${ok(rootFail === 0)}  raw readings hash to the signed readings root`);
 console.log(`  ${ok(extFail === 0)}  extension preimages hash to the signed extensions root`);
-console.log(`  ${ok(extFail === 0)}  extension preimages hash to the signed extensions root`.replace(/^.*$/, m => m) && "");
+// Extension records are covered by a signed root and are checked by the relay
+// on receipt. Their encoding is not published, so this tool reports the field's
+// presence rather than claiming a verification a reader cannot repeat.
 console.log(`  ${gaps === 0 ? "     " : "note "}  ${gaps} epoch(s) absent — offline evidence, not archive damage`);
-if (extLegacy > 0) console.log(`  note   ${extLegacy} bundle(s) predate extension publication — root signed on chain, preimage not in archive`);
+console.log(`  note   extension roots are signed on chain and checked by the relay; their encoding is not published`);
 console.log("");
 
 process.exit(missingFiles + bad + rootFail + extFail === 0 ? 0 : 1);

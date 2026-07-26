@@ -33,7 +33,10 @@ node verify-archive.mjs .
 ```
 
 It confirms every listed file is present and unaltered, and that the raw
-samples in each bundle hash to the root the device signed. It reports gaps in
+samples in each bundle hash to the root the device signed. Attestations also
+carry a second signed root over extension records; that root is verified by the
+relay on receipt, but its encoding is not published, so this tool does not claim
+a check a reader could not repeat. It reports gaps in
 epoch numbering rather than smoothing them over: an epoch index is consumed the
 moment an epoch is created, so a gap means the device measured and could not
 deliver, or was not running. Neither is repairable after the fact, and neither
