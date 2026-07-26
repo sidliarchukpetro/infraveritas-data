@@ -96,7 +96,6 @@ console.log(`  devices ${devices.length} · days ${days} · bundles ${files}`);
 console.log(`  ${ok(missingFiles === 0)}  every file listed in a manifest is present`);
 console.log(`  ${ok(bad === 0)}  every file hashes to its manifest entry`);
 console.log(`  ${ok(rootFail === 0)}  raw readings hash to the signed readings root`);
-console.log(`  ${ok(extFail === 0)}  extension preimages hash to the signed extensions root`);
 // Extension records are covered by a signed root and are checked by the relay
 // on receipt. Their encoding is not published, so this tool reports the field's
 // presence rather than claiming a verification a reader cannot repeat.
